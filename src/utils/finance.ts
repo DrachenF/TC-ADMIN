@@ -1,0 +1,16 @@
+import { CreditCard,Currency,InstallmentBilling,InstallmentPurchase } from '../types';
+export const money=(n:number,c:Currency='GTQ')=>`${c==='GTQ'?'Q':'$'}${(Number.isFinite(n)?n:0).toLocaleString('es-GT',{maximumFractionDigits:2})}`;
+export const clampMoney=(n:number)=>Number.isFinite(n)&&n>0?n:0;
+const dayInMonth=(y:number,m:number,d:number)=>new Date(y,m,Math.min(d,new Date(y,m+1,0).getDate()));
+export function calculateNextStatementDate(day:number,from=new Date()){let d=dayInMonth(from.getFullYear(),from.getMonth(),day); if(d<startOfDay(from))d=dayInMonth(from.getFullYear(),from.getMonth()+1,day); return d}
+export function calculateNextPaymentDate(statementDay:number,paymentDay:number,from=new Date()){const st=calculateNextStatementDate(statementDay,from); let p=dayInMonth(st.getFullYear(),st.getMonth(),paymentDay); if(paymentDay<=statementDay)p=dayInMonth(st.getFullYear(),st.getMonth()+1,paymentDay); return p}
+export const startOfDay=(d:Date)=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+export const daysBetween=(a:Date,b:Date)=>Math.ceil((startOfDay(b).getTime()-startOfDay(a).getTime())/86400000);
+export const calculateDaysUntilPayment=(c:CreditCard)=>daysBetween(new Date(),calculateNextPaymentDate(c.statementDay,c.paymentDay));
+export const calculateDaysSinceUpdate=(iso:string)=>Math.max(0,Math.floor((Date.now()-new Date(iso).getTime())/86400000));
+export const calculateAvailableAfterExpense=(v:number,a:number)=>v-clampMoney(a); export const calculateAvailableAfterPayment=(v:number,a:number)=>v+clampMoney(a); export const calculatePaymentRemaining=(v:number,a:number)=>Math.max(0,v-clampMoney(a)); export const calculateCurrencyEquivalent=(usd:number,rate:number)=>usd*rate;
+export function calculateFirstInstallmentBillingDate(card:CreditCard,startDate:string){const s=new Date(startDate+'T00:00:00'); let d=dayInMonth(s.getFullYear(),s.getMonth(),card.statementDay); if(s>d)d=dayInMonth(s.getFullYear(),s.getMonth()+1,card.statementDay); return d.toISOString().slice(0,10)}
+export function addMonthsISO(iso:string,months=1){const d=new Date(iso+'T00:00:00');return dayInMonth(d.getFullYear(),d.getMonth()+months,d.getDate()).toISOString().slice(0,10)}
+export function processInstallmentBilling(cardId:string,billingDate:string,purchases:InstallmentPurchase[],billings:InstallmentBilling[]){const nextPurchases=purchases.map(p=>({...p}));const nextBillings=[...billings];for(const p of nextPurchases.filter(p=>p.cardId===cardId&&p.status==='ACTIVE')){while(p.remainingInstallments>0&&p.nextBillingDate<=billingDate){const num=p.currentInstallment+1;const id=`${p.id}-${num}`;if(!nextBillings.some(b=>b.id===id)){nextBillings.push({id,installmentPurchaseId:p.id,cardId,installmentNumber:num,amount:p.monthlyInstallment,currency:p.currency,billingDate:p.nextBillingDate,status:'BILLED'});}p.currentInstallment=num;p.remainingInstallments=Math.max(0,p.installments-num);p.nextBillingDate=addMonthsISO(p.nextBillingDate,1);p.updatedAt=new Date().toISOString();if(p.remainingInstallments===0)p.status='COMPLETED';}}
+return {purchases:nextPurchases,billings:nextBillings};}
+export const nextInstallmentTotal=(cardId:string,currency:Currency,purchases:InstallmentPurchase[])=>purchases.filter(p=>p.cardId===cardId&&p.currency===currency&&p.status==='ACTIVE').reduce((s,p)=>s+p.monthlyInstallment,0);

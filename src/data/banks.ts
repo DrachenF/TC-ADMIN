@@ -1,0 +1,4 @@
+import { Bank } from '../types';
+export const BANKS:Bank[]=['Citibank N.A.','Azteca','Antigua','Crédito Hipotecario Nacional','Banco Cuscatlán Guatemala, S.A.','Vivibanco','Credicorp','INV','Banco Nexa, S.A.','Banco Multimoney, S.A.','Financiera Summa, S.A.','Banco Industrial','G&T Continental','Banco de América Central - BAC','Banrural','Promerica','Bantrab','Interbanco','Banco de Guatemala','Ficohsa','Banco Agromercantil de Guatemala, S.A. (BAM)','Otro'].sort((a,b)=>a.localeCompare(b,'es')).map(n=>({id:n==='Otro'?'other':n.toLowerCase().replace(/[^a-z0-9]+/g,'-'),name:n}));
+export const BRANDS=['Visa','Mastercard','American Express','Otra'];
+export const CATEGORIES=['Restaurante','Supermercado','Gasolina','Transporte','Compras','Entretenimiento','Servicios','Salud','Viajes','Educación','Suscripciones','Otros'];
